@@ -172,6 +172,9 @@ document.addEventListener('pointerdown',wake);
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){lock=null;wake();poll()}});
 
 /* ---------------- Spotify (PKCE, no server) ---------------- */
+/* George's Spotify app Client ID (public, not a secret). A different one can be pasted in Settings. */
+var DEFAULT_CID='155a5f74dc1b4bf2813f64badba8bbf8';
+if(!store.get('cid'))store.set('cid',DEFAULT_CID);
 var REDIRECT=location.origin+location.pathname;
 var SCOPES='user-read-playback-state user-modify-playback-state user-read-currently-playing';
 var API='https://api.spotify.com/v1';
