@@ -116,6 +116,7 @@ body.screen .edge{display:block}
         <div><b>Last touch</b><span class="num" id="pos">–</span></div>
         <div><b>Response</b><span class="num" id="lat">–</span></div>
         <div><b>Taps</b><span class="num" id="taps">0</span></div>
+        <div><b>Most fingers</b><span class="num" id="maxf">0</span></div>
       </div>
     </div>
   </section>
@@ -132,8 +133,8 @@ body.screen .edge{display:block}
 
   <section id="sound">
     <div class="tiles">
-      <div class="tile"><h2>Car speakers</h2><p class="note">Plays through whatever the phone is routed to.</p>
-        <div class="row"><button class="btn" data-tone="0">Tone</button><button class="btn" data-tone="-1">Left</button><button class="btn" data-tone="1">Right</button><button class="btn" id="speak">Voice</button></div>
+      <div class="tile"><h2>Car speakers</h2><p class="note">Tap each one and note which come out of the car and which come out of the phone. Media plays the way Spotify does.</p>
+        <div class="row"><button class="btn" data-tone="0">Tone</button><button class="btn" data-tone="-1">Left</button><button class="btn" data-tone="1">Right</button><button class="btn" id="speak">Voice</button><button class="btn" id="media">Media</button></div>
         <div class="status" id="audioStatus">Not tested yet</div></div>
       <div class="tile"><h2>Motion sensor</h2><p class="note">Feels bumps and turns, if the browser allows it.</p>
         <div class="row"><button class="btn" id="motion">Start</button></div>
@@ -151,7 +152,7 @@ body.screen .edge{display:block}
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
-const R={audio:'not tested',motion:'not tested',wake:'not tested',latency:[],taps:0,hits:{}};
+const R={audio:'not tested',maxFingers:0,tried:[],motion:'not tested',wake:'not tested',latency:[],taps:0,hits:{}};
 
 /* tabs */
 const tabs=[...document.querySelectorAll('nav button')];
@@ -209,6 +210,7 @@ function touchAt(t,down){const r=pad.getBoundingClientRect();const x=t.clientX-r
 pad.addEventListener('touchstart',e=>{e.preventDefault();const t0=performance.now();
   for(const t of e.changedTouches){touchAt(t,true);R.taps++}
   $('fingers').textContent=e.touches.length;$('taps').textContent=R.taps;
+  if(e.touches.length>R.maxFingers){R.maxFingers=e.touches.length;$('maxf').textContent=R.maxFingers}
   const ts=e.timeStamp;
   requestAnimationFrame(()=>{let ms=performance.now()-ts;if(!(ms>=0&&ms<1000))ms=performance.now()-t0;ms=Math.round(ms);R.latency.push(ms);if(R.latency.length>20)R.latency.shift();$('lat').textContent=ms+' ms'});
 },{passive:false});
@@ -238,7 +240,35 @@ $('samples').innerHTML=[14,18,24,32,44,60].map((s,i)=>`<p><em>${s} pt</em><span 
 
 /* sound */
 let ac=null;
+/* Ask iOS to treat this page as a media player so its sound follows the CarPlay route (Safari 16.4+). */
+function playback(){
+  try{if(navigator.audioSession){if(navigator.audioSession.type!=='playback')navigator.audioSession.type='playback';return navigator.audioSession.type}}catch(e){return 'error: '+e.message}
+  return 'unsupported';
+}
+R.session=playback();
+function tried(name){if(R.tried.indexOf(name)<0)R.tried.push(name)}
+/* A one second beep as a WAV file, played through an audio element like real media. */
+function beepWav(){
+  const sr=22050,n=sr,buf=new ArrayBuffer(44+n*2),v=new DataView(buf);
+  function str(o,t){for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))}
+  str(0,'RIFF');v.setUint32(4,36+n*2,true);str(8,'WAVE');str(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);str(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){const t=i/sr,env=Math.min(1,t*20)*Math.max(0,1-t);v.setInt16(44+i*2,Math.sin(2*Math.PI*392*t)*env*0.5*32767,true)}
+  return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+}
+let mediaEl=null;
+$('media').addEventListener('click',()=>{
+  R.session=playback();tried('Media');
+  try{
+    if(!mediaEl){mediaEl=new Audio(beepWav());mediaEl.setAttribute('playsinline','')}
+    mediaEl.currentTime=0;
+    const pr=mediaEl.play();
+    if(pr&&pr.then)pr.then(()=>{R.media='played';setStatus('audioStatus','Media playing. Car or phone?',true)}).catch(err=>{R.media='blocked: '+err.message;setStatus('audioStatus','Media blocked: '+err.message,false)});
+    else{R.media='played';setStatus('audioStatus','Media playing. Car or phone?',true)}
+  }catch(err){R.media='blocked: '+err.message;setStatus('audioStatus','Media blocked: '+err.message,false)}
+});
 function tone(pan){
+  R.session=playback();tried(pan<0?'Left':pan>0?'Right':'Tone');
   try{
     ac=ac||new (window.AudioContext||window.webkitAudioContext)();
     if(ac.state==='suspended')ac.resume();
@@ -253,6 +283,7 @@ function tone(pan){
 document.querySelectorAll('[data-tone]').forEach(b=>b.addEventListener('click',()=>tone(+b.dataset.tone)));
 $('speak').addEventListener('click',()=>{
   if(!('speechSynthesis' in window)){R.voice='unsupported';setStatus('audioStatus','Voice not supported',false);return}
+  R.session=playback();tried('Voice');
   const u=new SpeechSynthesisUtterance('Testing the car speakers. One, two, three.');speechSynthesis.cancel();speechSynthesis.speak(u);
   R.voice='spoken';setStatus('audioStatus','Speaking now',true);
 });
@@ -287,7 +318,7 @@ $('copy').addEventListener('click',async()=>{
   facts();
   const lat=R.latency.length?Math.round(R.latency.reduce((a,b)=>a+b,0)/R.latency.length)+' ms avg':'not tested';
   const hits=SIZES.map(s=>{const h=R.hits[s];return h?`${s}pt ${h.hit}/${h.hit+h.miss}`:`${s}pt –`}).join(', ');
-  const txt=['CarBridge test bench report',...Object.entries(R.facts).map(([k,v])=>k+': '+v),'Touch response: '+lat+' ('+R.taps+' taps)','Button hits: '+hits,'Audio: '+R.audio+(R.voice?', voice '+R.voice:''),'Motion: '+R.motion,'Keep screen on: '+R.wake].join('\n');
+  const txt=['CarBridge test bench report',...Object.entries(R.facts).map(([k,v])=>k+': '+v),'Touch response: '+lat+' ('+R.taps+' taps, most fingers at once: '+R.maxFingers+')','Button hits: '+hits,'Audio: '+R.audio+(R.voice?', voice '+R.voice:'')+(R.media?', media '+R.media:''),'Audio session: '+R.session,'Sound buttons tried: '+(R.tried.join(', ')||'none'),'Motion: '+R.motion,'Keep screen on: '+R.wake].join('\n');
   try{await navigator.clipboard.writeText(txt);$('copied').textContent='Copied. Paste it into chat.'}
   catch(e){$('copied').textContent='Copy was blocked. Screenshot this tab instead.'}
 });
