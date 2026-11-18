@@ -6,9 +6,9 @@ Open the live page in Safari on the phone, then use Share → Add to Home Screen
 
 Tabs:
 - **Screen**: usable size, safe areas, and edge markers to spot cropping
-- **Touch**: multi-touch pad with response time
+- **Touch**: touch pad with response time and the most fingers seen at once
 - **Buttons**: hit rates for five button sizes
 - **Text**: readable sizes at a glance
-- **Sound & sensors**: car speaker test, motion sensor, keep screen on
+- **Sound & sensors**: car speaker test (tone, left, right, voice, media), motion sensor, keep screen on
 
 **Copy report** on the Screen tab collects every result to paste back.
