@@ -10,57 +10,99 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* Car home screen: Spotify on the left, minutes to home and work on the right.
+/* Car home screen: a live Google map on the left, Spotify and minutes to home and work on the right.
    Built for a wide landscape car display, one finger at a time, big targets. */
 :root{color-scheme:dark;--bg:#0b1016;--panel:#141c25;--panel2:#1b2631;--line:#263340;--ink:#eef3f6;--dim:#91a3b1;--go:#1ed760;--warn:#ffc547;--bad:#ff5d73;--blue:#4cb5ff}
 *{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--ink);font:16px/1.3 Barlow,system-ui,sans-serif;overflow:hidden;height:100vh;height:100dvh;
-  padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
-  display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+  padding:max(6px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
+  -webkit-user-select:none;user-select:none;touch-action:manipulation}
 .num{font-family:"Barlow Condensed",system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
 button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
-button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
-header{display:flex;align-items:center;gap:12px}
-#clock{font-size:clamp(24px,5vh,34px)}
-#device{color:var(--dim);font-size:15px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.icon{width:52px;height:52px;border-radius:12px;background:var(--panel);display:grid;place-items:center}
-.icon svg{width:26px;height:26px;fill:var(--ink)}
-main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:10px;min-height:0}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+main{height:100%;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px}
 .card{background:var(--panel);border-radius:16px;min-height:0;overflow:hidden}
+
+/* map */
+#mapWrap{position:relative;border-radius:16px;overflow:hidden;background:var(--panel)}
+#map{position:absolute;inset:0}
+#noMap{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--dim)}
+#noMap b{display:block;color:var(--ink);font:700 26px "Barlow Condensed",sans-serif;margin-bottom:6px}
+.search{position:absolute;left:8px;right:8px;top:8px;display:flex;gap:6px;z-index:3}
+.search input{flex:1;min-height:52px;border-radius:12px;border:0;background:rgba(11,16,22,.92);color:var(--ink);font:600 18px Barlow,sans-serif;padding:0 14px;box-shadow:0 2px 10px rgba(0,0,0,.4);-webkit-user-select:text;user-select:text;-webkit-appearance:none;appearance:none}
+.search input::placeholder{color:var(--dim)}
+.search button{width:52px;border-radius:12px;background:rgba(11,16,22,.92);font:700 24px Barlow,sans-serif;display:none}
+.search.typing button{display:block}
+#sugg{position:absolute;left:8px;right:8px;top:66px;z-index:3;background:rgba(11,16,22,.97);border-radius:12px;overflow:hidden;display:none;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#sugg.on{display:block}
+#sugg button{display:block;width:100%;text-align:left;padding:10px 14px;min-height:56px;border-bottom:1px solid var(--line)}
+#sugg button:last-child{border-bottom:0}
+#sugg button:active{background:var(--panel2)}
+#sugg b{display:block;font:600 17px Barlow,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sugg small{display:block;color:var(--dim);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mapbtns{position:absolute;right:8px;bottom:8px;display:grid;gap:6px;z-index:2}
+.mapbtns button{width:56px;height:56px;border-radius:12px;background:rgba(11,16,22,.92);font:700 28px/1 Barlow,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4);display:grid;place-items:center}
+.mapbtns button:active{background:var(--panel2)}
+#recenter svg{width:26px;height:26px;fill:var(--dim)}
+#recenter.lost svg{fill:var(--blue)}
+#sheet{position:absolute;left:8px;right:72px;bottom:8px;z-index:2;background:rgba(11,16,22,.96);border-radius:14px;padding:12px 14px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+#sheet.on{display:block}
+#sheet .name{font:700 22px/1.1 "Barlow Condensed",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:44px}
+#sheet .addr{color:var(--dim);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+#sheet .eta{font-size:22px;margin-top:4px}
+#sheet .eta small{font:600 14px Barlow,sans-serif;color:var(--dim)}
+#sheet .acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+#sheet .acts button,#sheet .acts a{min-height:50px;padding:0 14px;border-radius:10px;background:var(--panel2);font:700 18px "Barlow Condensed",sans-serif;display:inline-flex;align-items:center}
+#sheet .acts .go{background:var(--blue);color:#05121c;flex:1;justify-content:center}
+#sheetX{position:absolute;right:6px;top:6px;width:44px;height:44px;border-radius:10px;font:700 22px Barlow,sans-serif;color:var(--dim)}
+
+/* right side */
+#side{display:grid;grid-template-rows:auto minmax(0,1fr) minmax(0,.62fr);gap:8px;min-height:0}
+.topbar{display:flex;align-items:center;gap:10px;min-height:44px}
+#clock{font-size:clamp(22px,5vh,30px)}
+#device{color:var(--dim);font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon{width:48px;height:48px;border-radius:12px;background:var(--panel);display:grid;place-items:center}
+.icon svg{width:24px;height:24px;fill:var(--ink)}
+
 /* music */
-#music{display:grid;grid-template-rows:minmax(0,1fr) auto auto;padding:12px;gap:10px}
-.now{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;min-height:0}
-#art{height:min(100%,30vh);aspect-ratio:1;max-height:170px;min-height:64px;border-radius:10px;background:var(--panel2) center/cover no-repeat}
-#title{font:700 clamp(22px,5.4vh,36px)/1.08 "Barlow Condensed",sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#sub{color:var(--dim);font-size:clamp(15px,3.4vh,20px);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#watch{display:none;margin-top:10px;min-height:44px;padding:0 14px;border-radius:10px;background:var(--panel2);font:700 17px "Barlow Condensed",sans-serif;color:var(--warn)}
+#music{display:grid;grid-template-rows:minmax(0,1fr) auto auto;padding:10px;gap:8px}
+.now{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:center;min-height:0}
+#art{width:clamp(56px,17vh,96px);aspect-ratio:1;border-radius:10px;background:var(--panel2) center/cover no-repeat}
+#title{font:700 clamp(19px,4.6vh,28px)/1.08 "Barlow Condensed",sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#sub{color:var(--dim);font-size:clamp(14px,3vh,17px);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#watch{display:none;margin-top:6px;min-height:40px;padding:0 12px;border-radius:10px;background:var(--panel2);font:700 16px "Barlow Condensed",sans-serif;color:var(--warn)}
 #watch.on{display:inline-block}
-.prog{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;color:var(--dim);font-size:15px}
-.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:var(--ink);border-radius:4px}
-.ctl{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;gap:8px}
-.ctl button{height:clamp(64px,15vh,86px);border-radius:14px;background:var(--panel2);display:grid;place-items:center;font:700 20px "Barlow Condensed",sans-serif}
+.prog{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;color:var(--dim);font-size:14px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ink);border-radius:3px}
+.ctl{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;gap:6px}
+.ctl button{height:clamp(54px,13vh,76px);border-radius:12px;background:var(--panel2);display:grid;place-items:center;font:700 19px "Barlow Condensed",sans-serif}
 .ctl button:active{background:var(--line)}
-.ctl svg{width:34px;height:34px;fill:var(--ink)}
-.ctl #play{background:var(--ink)}.ctl #play svg{fill:var(--bg);width:40px;height:40px}
+.ctl svg{width:30px;height:30px;fill:var(--ink)}
+.ctl #play{background:var(--ink)}.ctl #play svg{fill:var(--bg);width:36px;height:36px}
 .ctl button[hidden]{display:grid;visibility:hidden}
-#connect{display:none;place-items:center;text-align:center;padding:20px;gap:12px}
+#connect{display:none;place-items:center;text-align:center;padding:14px;gap:10px}
 #music.off>*{display:none}#music.off #connect{display:grid}
-.big-btn{min-height:64px;padding:0 26px;border-radius:14px;background:var(--go);color:#06140b;font:700 24px "Barlow Condensed",sans-serif}
-/* drive times */
-#places{display:grid;grid-template-rows:1fr 1fr;gap:10px;min-height:0}
-.place{display:grid;grid-template-rows:auto 1fr auto;padding:12px 16px;border-radius:16px;background:var(--panel);min-height:0;text-align:left}
+.big-btn{min-height:60px;padding:0 24px;border-radius:14px;background:var(--go);color:#06140b;font:700 22px "Barlow Condensed",sans-serif}
+
+/* home and work */
+#places{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-height:0}
+.place{display:grid;grid-template-rows:auto 1fr auto;padding:8px 12px;border-radius:16px;background:var(--panel);min-height:0;text-align:left}
 .place:active{background:var(--panel2)}
-.place b{font:600 15px Barlow,sans-serif;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
-.mins{display:flex;align-items:baseline;gap:8px;align-self:center}
-.mins .num{font-size:clamp(44px,13vh,92px);line-height:1}
-.mins small{font:600 clamp(16px,3.6vh,22px) Barlow,sans-serif;color:var(--dim)}
-.place .meta{color:var(--dim);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place b{font:600 14px Barlow,sans-serif;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;gap:6px}
+.place b span{color:var(--blue);text-transform:none;letter-spacing:0}
+.mins{display:flex;align-items:baseline;gap:6px;align-self:center}
+.mins .num{font-size:clamp(32px,10vh,60px);line-height:1}
+.mins small{font:600 clamp(14px,3vh,18px) Barlow,sans-serif;color:var(--dim)}
+.place .meta{color:var(--dim);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .place.here .num{color:var(--go)}
-#msg{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font:600 16px Barlow,sans-serif;max-width:90vw;display:none;z-index:5}
+
+#msg{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font:600 16px Barlow,sans-serif;max-width:90vw;display:none;z-index:8}
+
 /* settings */
-#setup{position:fixed;inset:0;background:var(--bg);z-index:4;display:none;overflow:auto;padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left))}
+#setup{position:fixed;inset:0;background:var(--bg);z-index:6;display:none;overflow:auto;padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left))}
 #setup.on{display:block}
 #setup h1{font:700 30px "Barlow Condensed",sans-serif;margin:0;flex:1}
 .top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
@@ -69,81 +111,98 @@ main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:10px;
 .box h2{margin:0 0 6px;font:700 22px "Barlow Condensed",sans-serif}
 .box p{margin:0 0 10px;color:var(--dim);font-size:15px}
 .box code{color:var(--ink);font-size:13px;word-break:break-all;-webkit-user-select:text;user-select:text}
-input{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:16px Barlow,sans-serif;padding:0 12px;-webkit-user-select:text;user-select:text}
+.box input{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:16px Barlow,sans-serif;padding:0 12px;-webkit-user-select:text;user-select:text}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .btn{min-height:48px;padding:0 16px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font:700 18px "Barlow Condensed",sans-serif}
 .btn:active{background:var(--line)}
 .saved{color:var(--go);font-size:14px;margin-top:6px;min-height:18px}
-@media(max-aspect-ratio:1/1){main{grid-template-columns:1fr;grid-template-rows:minmax(0,1.4fr) minmax(0,1fr)}#places{grid-template-rows:none;grid-template-columns:1fr 1fr}}
+@media(max-aspect-ratio:1/1){main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}}
 </style>
 </head>
 <body>
 <div id="err" style="display:none;position:fixed;inset:auto 0 0 0;z-index:9;background:#ff5d73;color:#0b1016;padding:14px;font:700 16px/1.3 Barlow,sans-serif;-webkit-user-select:text;user-select:text"></div>
 <script>window.onerror=function(m,s,l,c){var e=document.getElementById('err');e.style.display='block';e.textContent='Page error: '+m+' (line '+l+':'+c+'). Screenshot this and send it to Claude.';};</script>
 
-<header>
-  <span class="num" id="clock">–</span>
-  <span id="device"></span>
-  <button class="icon" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>
-</header>
-
 <main>
-  <section class="card off" id="music">
-    <div class="now">
-      <div id="art"></div>
-      <div>
-        <div id="title">Nothing playing</div>
-        <div id="sub">Start something in Spotify</div>
-        <button id="watch">▶ Watch in Spotify</button>
+  <section id="mapWrap">
+    <div id="map"></div>
+    <div id="noMap"><div><b>Map</b><span id="noMapText">Add a Google Maps key in Settings to show the map.</span></div></div>
+    <div class="search" id="searchBar" style="display:none"><input id="q" type="search" placeholder="Search Google Maps" autocomplete="off" enterkeyhint="search"><button id="qClear" aria-label="Clear search">×</button></div>
+    <div id="sugg"></div>
+    <div id="sheet">
+      <button id="sheetX" aria-label="Close">×</button>
+      <div class="name" id="sName"></div>
+      <div class="addr" id="sAddr"></div>
+      <div class="eta num" id="sEta"></div>
+      <div class="acts">
+        <a class="go" id="sGo" href="#">Navigate</a>
+        <button id="sHome">Set as Home</button>
+        <button id="sWork">Set as Work</button>
       </div>
     </div>
-    <div class="prog"><span class="num" id="pos">0:00</span><div class="bar"><i id="fill"></i></div><span class="num" id="dur">0:00</span></div>
-    <div class="ctl">
-      <button id="back" aria-label="Back"></button>
-      <button id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9.5 12z"/></svg></button>
-      <button id="play" aria-label="Play or pause"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15L19.5 12z"/></svg></button>
-      <button id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l10.5-7z"/></svg></button>
-      <button id="fwd" aria-label="Forward"></button>
-    </div>
-    <div id="connect">
-      <div style="font:700 30px 'Barlow Condensed',sans-serif">Spotify</div>
-      <div style="color:var(--dim);max-width:380px" id="connectNote">Connect once and this screen controls the Spotify app on this phone.</div>
-      <button class="big-btn" id="login">Connect Spotify</button>
+    <div class="mapbtns" id="mapBtns" style="display:none">
+      <button id="zin" aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">−</button>
+      <button id="recenter" aria-label="Center on me"><svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9 3h-2.1A7 7 0 0 0 13 5.1V3h-2v2.1A7 7 0 0 0 5.1 11H3v2h2.1a7 7 0 0 0 5.9 5.9V21h2v-2.1a7 7 0 0 0 5.9-5.9H21zm-9 6a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/></svg></button>
     </div>
   </section>
 
-  <section id="places">
-    <button class="place" data-p="home"><b>Home</b><div class="mins"><span class="num" id="homeMin">–</span><small id="homeUnit"></small></div><div class="meta" id="homeMeta">Tap to set</div></button>
-    <button class="place" data-p="work"><b>Work</b><div class="mins"><span class="num" id="workMin">–</span><small id="workUnit"></small></div><div class="meta" id="workMeta">Tap to set</div></button>
-  </section>
+  <aside id="side">
+    <div class="topbar">
+      <span class="num" id="clock">–</span>
+      <span id="device"></span>
+      <button class="icon" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>
+    </div>
+
+    <section class="card off" id="music">
+      <div class="now">
+        <div id="art"></div>
+        <div>
+          <div id="title">Nothing playing</div>
+          <div id="sub">Start something in Spotify</div>
+          <button id="watch">▶ Watch in Spotify</button>
+        </div>
+      </div>
+      <div class="prog"><span class="num" id="pos">0:00</span><div class="bar"><i id="fill"></i></div><span class="num" id="dur">0:00</span></div>
+      <div class="ctl">
+        <button id="back" aria-label="Back 15 seconds"></button>
+        <button id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9.5 12z"/></svg></button>
+        <button id="play" aria-label="Play or pause"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15L19.5 12z"/></svg></button>
+        <button id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l10.5-7z"/></svg></button>
+        <button id="fwd" aria-label="Forward 30 seconds"></button>
+      </div>
+      <div id="connect">
+        <div style="font:700 26px 'Barlow Condensed',sans-serif">Spotify</div>
+        <div style="color:var(--dim);max-width:340px;font-size:15px" id="connectNote">Connect once and this screen controls the Spotify app on this phone.</div>
+        <button class="big-btn" id="login">Connect Spotify</button>
+      </div>
+    </section>
+
+    <section id="places">
+      <a class="place" data-p="home" href="#"><b>Home<span id="homeGo"></span></b><div class="mins"><span class="num" id="homeMin">–</span><small id="homeUnit"></small></div><div class="meta" id="homeMeta">Tap to set</div></a>
+      <a class="place" data-p="work" href="#"><b>Work<span id="workGo"></span></b><div class="mins"><span class="num" id="workMin">–</span><small id="workUnit"></small></div><div class="meta" id="workMeta">Tap to set</div></a>
+    </section>
+  </aside>
 </main>
 
 <div id="setup">
   <div class="top"><h1>Settings</h1><button class="btn" id="done">Done</button></div>
   <div class="grid">
     <div class="box"><h2>Spotify</h2>
-      <p>Paste the Client ID from your app at developer.spotify.com. In that app's settings, add this exact Redirect URI:</p>
+      <p>Redirect URI for your Spotify app's settings:</p>
       <p><code id="redir"></code></p>
       <input id="cid" placeholder="Client ID" autocomplete="off" autocapitalize="off" spellcheck="false">
       <div class="row"><button class="btn" id="saveCid">Save and connect</button><button class="btn" id="logout">Disconnect</button></div>
       <div class="saved" id="cidMsg"></div></div>
-    <div class="box"><h2>Home</h2>
-      <p>Set it while you're there, or type an address.</p>
-      <div class="row"><button class="btn" data-here="home">Use where I am now</button></div>
-      <input id="homeAddr" placeholder="Or type an address" autocomplete="off" style="margin-top:8px">
-      <div class="row"><button class="btn" data-find="home">Find address</button></div>
-      <div class="saved" id="homeMsg"></div></div>
-    <div class="box"><h2>Work</h2>
-      <p>Set it while you're there, or type an address.</p>
-      <div class="row"><button class="btn" data-here="work">Use where I am now</button></div>
-      <input id="workAddr" placeholder="Or type an address" autocomplete="off" style="margin-top:8px">
-      <div class="row"><button class="btn" data-find="work">Find address</button></div>
-      <div class="saved" id="workMsg"></div></div>
-    <div class="box"><h2>Live traffic (optional)</h2>
-      <p>Without this, times are normal-traffic estimates. For live traffic, paste a free Mapbox public token (starts with pk.).</p>
-      <input id="mbx" placeholder="pk.…" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="row"><button class="btn" id="saveMbx">Save</button></div>
-      <div class="saved" id="mbxMsg"></div></div>
+    <div class="box"><h2>Google Maps key</h2>
+      <p>Turns on the map, search and live-traffic drive times.</p>
+      <input id="gkey" placeholder="AIza…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row"><button class="btn" id="saveGkey">Save</button></div>
+      <div class="saved" id="gkeyMsg"></div></div>
+    <div class="box"><h2>Home and Work</h2>
+      <p>Easiest: search a place on the map, then tap Set as Home or Set as Work. Or set it while you're there:</p>
+      <div class="row"><button class="btn" data-here="home">Home is where I am now</button><button class="btn" data-here="work">Work is where I am now</button></div>
+      <div class="saved" id="placeMsg"></div></div>
   </div>
 </div>
 <div id="msg"></div>
@@ -160,21 +219,27 @@ var store={
 var msgTimer=0;
 function say(t){var m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(msgTimer);msgTimer=setTimeout(function(){m.style.display='none'},3500)}
 function fmt(ms){var s=Math.max(0,Math.floor(ms/1000));var h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')}
+function hm(){return new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
+function minsText(sec){var m=Math.max(1,Math.round(sec/60));return m>=60?Math.floor(m/60)+' h '+(m%60):String(m)}
+function milesText(meters){var mi=meters/1609.34;return (mi<10?mi.toFixed(1):Math.round(mi))+' mi'}
+
+/* built-in keys (public client IDs, not secrets; can be replaced in Settings) */
+var DEFAULT_CID='155a5f74dc1b4bf2813f64badba8bbf8';
+var DEFAULT_GKEY='';
+if(!store.get('cid'))store.set('cid',DEFAULT_CID);
+function gkey(){return store.get('gkey')||DEFAULT_GKEY}
 
 /* clock */
-function tick(){var d=new Date();$('clock').textContent=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
+function tick(){$('clock').textContent=hm()}
 tick();setInterval(tick,10000);
 
 /* keep the screen on after the first tap (Safari 16.4+) */
 var lock=null;
 function wake(){if(lock||!('wakeLock' in navigator))return;navigator.wakeLock.request('screen').then(function(l){lock=l;l.addEventListener('release',function(){lock=null})}).catch(function(){})}
 document.addEventListener('pointerdown',wake);
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){lock=null;wake();poll()}});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){lock=null;wake();poll();routes(false)}});
 
-/* ---------------- Spotify (PKCE, no server) ---------------- */
-/* George's Spotify app Client ID (public, not a secret). A different one can be pasted in Settings. */
-var DEFAULT_CID='155a5f74dc1b4bf2813f64badba8bbf8';
-if(!store.get('cid'))store.set('cid',DEFAULT_CID);
+/* ================= Spotify (PKCE, no server) ================= */
 var REDIRECT=location.origin+location.pathname;
 var SCOPES='user-read-playback-state user-modify-playback-state user-read-currently-playing';
 var API='https://api.spotify.com/v1';
@@ -245,15 +310,15 @@ function render(){
   var s=state;
   if(!s||!s.item){
     $('title').textContent='Nothing playing';$('sub').textContent=s?'Paused':'Start something in Spotify, or tap play';
-    $('art').style.backgroundImage='';$('watch').classList.remove('on');setPlayIcon(false);
+    $('art').style.backgroundImage='';$('art').dataset.url='';$('watch').classList.remove('on');setPlayIcon(false);
     $('pos').textContent='0:00';$('dur').textContent='0:00';$('fill').style.width='0';setSkip(false);return;
   }
   var it=s.item,ep=s.currently_playing_type==='episode'||it.type==='episode';
   $('title').textContent=it.name||'';
   $('sub').textContent=ep?((it.show&&it.show.name)||'Podcast'):((it.artists||[]).map(function(a){return a.name}).join(', '));
   var imgs=ep?(it.images&&it.images.length?it.images:(it.show&&it.show.images)||[]):((it.album&&it.album.images)||[]);
-  var url=imgs.length?imgs[0].url:'';
-  var cur=$('art').dataset.url||'';if(url!==cur){$('art').style.backgroundImage=url?'url("'+url+'")':'';$('art').dataset.url=url}
+  var url=imgs.length?imgs[imgs.length>1?1:0].url:'';
+  if(url!==($('art').dataset.url||'')){$('art').style.backgroundImage=url?'url("'+url+'")':'';$('art').dataset.url=url}
   $('watch').classList.toggle('on',ep);
   setPlayIcon(s.is_playing);setSkip(ep);
   $('device').textContent=s.device?('Playing on '+s.device.name):'';
@@ -266,10 +331,7 @@ function progress(){
 }
 setInterval(progress,500);
 function setPlayIcon(playing){$('playIcon').innerHTML=playing?'<path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/>':'<path d="M7 4.5v15L19.5 12z"/>'}
-function setSkip(ep){
-  $('back').hidden=!ep;$('fwd').hidden=!ep;
-  $('back').textContent=ep?'−15':'';$('fwd').textContent=ep?'+30':'';
-}
+function setSkip(ep){$('back').hidden=!ep;$('fwd').hidden=!ep;$('back').textContent=ep?'−15':'';$('fwd').textContent=ep?'+30':''}
 function poll(){
   clearTimeout(pollTimer);
   if(!store.json('tok')){setConnected(false);return}
@@ -280,7 +342,6 @@ function poll(){
   .then(function(){pollTimer=setTimeout(poll,3000)});
 }
 function soon(){clearTimeout(pollTimer);pollTimer=setTimeout(poll,600)}
-
 /* when Spotify has no active device, wake the one on this phone */
 function withDevice(fn){
   return fn().catch(function(e){
@@ -293,10 +354,7 @@ function withDevice(fn){
     });
   });
 }
-function act(fn,optimistic){
-  if(optimistic)optimistic();
-  withDevice(fn).then(soon).catch(function(e){say(e.message);soon()});
-}
+function act(fn,optimistic){if(optimistic)optimistic();withDevice(fn).then(soon).catch(function(e){say(e.message);soon()})}
 $('play').addEventListener('click',function(){
   var playing=state&&state.is_playing;
   act(function(){return api('PUT','/me/player/'+(playing?'pause':'play'))},function(){
@@ -320,87 +378,234 @@ $('watch').addEventListener('click',function(){
 });
 $('login').addEventListener('click',login);
 
-/* ---------------- Drive times ---------------- */
-var here=null,lastRoute={home:0,work:0},lastFrom={home:null,work:null},routeBusy={};
+/* ================= Location ================= */
+var here=null;
 function dist(a,b){var R=6371000,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;
   var x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(x))}
+function startGPS(){
+  if(!('geolocation' in navigator)){placeNote('No location here');return}
+  navigator.geolocation.watchPosition(function(pos){
+    here={lat:pos.coords.latitude,lon:pos.coords.longitude};
+    mapMoved();routes(false);
+  },function(e){placeNote(e.code===1?'Location is off for this page':'Can’t get location')},
+  {enableHighAccuracy:true,maximumAge:10000,timeout:30000});
+}
+function placeNote(t){['home','work'].forEach(function(p){if(store.json(p))showPlace(p,'–','',t,false)})}
+
+/* ================= Directions handoff to the Google Maps app ================= */
+function navUrl(d){
+  return 'comgooglemaps://?daddr='+d.lat+','+d.lon+'&directionsmode=driving';
+}
+
+/* ================= Drive times (Google Routes with live traffic, fallback OSRM) ================= */
+function driveTime(from,to,withLine){
+  var key=gkey();
+  if(key){
+    return fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':'routes.duration,routes.distanceMeters'+(withLine?',routes.polyline.encodedPolyline':'')},
+      body:JSON.stringify({origin:{location:{latLng:{latitude:from.lat,longitude:from.lon}}},destination:{location:{latLng:{latitude:to.lat,longitude:to.lon}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE'})
+    }).then(function(r){return r.json().then(function(j){
+      if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+      var rt=j.routes&&j.routes[0];if(!rt)throw new Error('no route found');
+      return {sec:parseInt(rt.duration,10),meters:rt.distanceMeters||0,line:rt.polyline&&rt.polyline.encodedPolyline,live:true};
+    })}).catch(function(e){console.warn('Google route failed, using OSRM',e);return osrm(from,to,withLine)});
+  }
+  return osrm(from,to,withLine);
+}
+function osrm(from,to,withLine){
+  return fetch('https://router.project-osrm.org/route/v1/driving/'+from.lon+','+from.lat+';'+to.lon+','+to.lat+'?overview='+(withLine?'simplified&geometries=polyline':'false'))
+    .then(function(r){return r.json()}).then(function(j){
+      var rt=j&&j.routes&&j.routes[0];if(!rt)throw new Error((j&&(j.message||j.code))||'no route found');
+      return {sec:rt.duration,meters:rt.distance,line:rt.geometry||null,live:false};
+    });
+}
+
+var lastRoute={home:0,work:0},routeBusy={};
 function showPlace(p,mins,unit,meta,isHere){
+  var d=store.json(p);
+  $(p+'Go').textContent=d&&!isHere?'Navigate ›':'';
   $(p+'Min').textContent=mins;$(p+'Unit').textContent=unit;$(p+'Meta').textContent=meta;
-  document.querySelector('[data-p="'+p+'"]').classList.toggle('here',!!isHere);
+  var card=document.querySelector('[data-p="'+p+'"]');
+  card.classList.toggle('here',!!isHere);
+  card.setAttribute('href',d?navUrl(d):'#');
 }
 function route(p,force){
   var dest=store.json(p);
   if(!dest){showPlace(p,'–','','Tap to set',false);return}
   if(!here){showPlace(p,'–','','Waiting for location…',false);return}
-  var straight=dist(here,dest);
-  if(straight<150){showPlace(p,'0','min',"You're here",true);return}
-  var moved=lastFrom[p]?dist(here,lastFrom[p]):1e9;
-  var age=Date.now()-lastRoute[p];
-  if(!force&&routeBusy[p])return;
-  if(!force&&age<60000)return;
-  if(!force&&age<120000&&moved<250)return;
-  routeBusy[p]=true;lastRoute[p]=Date.now();lastFrom[p]={lat:here.lat,lon:here.lon};
-  var mbx=store.get('mbx');
-  var pts=here.lon+','+here.lat+';'+dest.lon+','+dest.lat;
-  var url=mbx?'https://api.mapbox.com/directions/v5/mapbox/driving-traffic/'+pts+'?overview=false&access_token='+encodeURIComponent(mbx)
-             :'https://router.project-osrm.org/route/v1/driving/'+pts+'?overview=false';
-  fetch(url).then(function(r){return r.json()}).then(function(j){
-    var rt=j&&j.routes&&j.routes[0];if(!rt)throw new Error(j&&(j.message||j.code)||'no route');
-    var m=Math.max(1,Math.round(rt.duration/60));
-    var mi=rt.distance/1609.34;
-    var t=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-    var hrs=m>=60?Math.floor(m/60)+' h '+(m%60):m;
-    showPlace(p,String(hrs),'min',(mi<10?mi.toFixed(1):Math.round(mi))+' mi · '+(mbx?'live traffic':'normal traffic')+' · '+t,false);
+  if(dist(here,dest)<150){showPlace(p,'0','min',"You're here",true);return}
+  if(routeBusy[p])return;
+  /* about every 3 minutes, to stay well inside Google's free allowance */
+  if(!force&&Date.now()-lastRoute[p]<180000)return;
+  routeBusy[p]=true;lastRoute[p]=Date.now();
+  driveTime(here,dest,false).then(function(r){
+    showPlace(p,minsText(r.sec),'min',milesText(r.meters)+' · '+(r.live?'live traffic':'normal traffic')+' · '+hm(),false);
   }).catch(function(e){
     showPlace(p,$(p+'Min').textContent,$(p+'Unit').textContent,'Couldn’t update: '+e.message,false);
   }).then(function(){routeBusy[p]=false});
 }
 function routes(force){route('home',force);route('work',force)}
-function startGPS(){
-  if(!('geolocation' in navigator)){showPlace('home','–','','No location here',false);showPlace('work','–','','No location here',false);return}
-  navigator.geolocation.watchPosition(function(pos){
-    here={lat:pos.coords.latitude,lon:pos.coords.longitude};routes(false);
-  },function(e){
-    var t=e.code===1?'Location is off for this page':'Can’t get location';
-    ['home','work'].forEach(function(p){if(store.json(p))showPlace(p,'–','',t,false)});
-  },{enableHighAccuracy:true,maximumAge:15000,timeout:30000});
-}
-setInterval(function(){routes(false)},30000);
-document.querySelectorAll('.place').forEach(function(b){b.addEventListener('click',function(){
-  if(!store.json(b.dataset.p)){openSetup();return}
-  lastRoute[b.dataset.p]=0;route(b.dataset.p,true);say('Updating '+b.dataset.p);
+setInterval(function(){if(document.visibilityState==='visible')routes(false)},30000);
+document.querySelectorAll('.place').forEach(function(a){a.addEventListener('click',function(e){
+  if(!store.json(a.dataset.p)){e.preventDefault();openSetup()}
+  else say('Opening Google Maps');
 })});
 
-/* ---------------- Settings ---------------- */
-function openSetup(){$('cid').value=store.get('cid')||'';$('mbx').value=store.get('mbx')||'';
-  ['home','work'].forEach(function(p){var d=store.json(p);$(p+'Msg').textContent=d?('Saved'+(d.label?': '+d.label:'')):''});
-  $('cidMsg').textContent=store.json('tok')?'Connected':'';$('setup').classList.add('on')}
+/* ================= Google map ================= */
+var map=null,meDot=null,pins={},resultPin=null,line=null,follow=true,picked=null,sessionTok=null;
+var NIGHT=[{elementType:'geometry',stylers:[{color:'#1b2836'}]},{elementType:'labels.text.fill',stylers:[{color:'#a9b8c6'}]},{elementType:'labels.text.stroke',stylers:[{color:'#0b1016'}]},
+  {featureType:'road',elementType:'geometry',stylers:[{color:'#2d3e4f'}]},{featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#16212c'}]},{featureType:'road.highway',elementType:'geometry',stylers:[{color:'#44607b'}]},
+  {featureType:'water',elementType:'geometry',stylers:[{color:'#0d1824'}]},{featureType:'poi',elementType:'labels.icon',stylers:[{visibility:'off'}]},{featureType:'poi.business',stylers:[{visibility:'off'}]},
+  {featureType:'poi.park',elementType:'geometry',stylers:[{color:'#183024'}]},{featureType:'transit',stylers:[{visibility:'off'}]},{featureType:'administrative',elementType:'geometry',stylers:[{color:'#33475a'}]}];
+
+function loadMap(){
+  var key=gkey();
+  if(!key){$('noMapText').textContent='Add a Google Maps key in Settings to show the map.';return}
+  if(window.google&&window.google.maps){initMap();return}
+  $('noMapText').textContent='Loading map…';
+  window.__carHomeMap=initMap;
+  window.gm_authFailure=function(){$('noMap').style.display='grid';$('searchBar').style.display='none';$('mapBtns').style.display='none';$('noMapText').textContent='Google turned down the Maps key. Check the key, its website restriction, and that the Maps JavaScript and Places APIs are turned on.';};
+  var s=document.createElement('script');
+  s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&v=weekly&libraries=places,geometry&callback=__carHomeMap';
+  s.async=true;s.onerror=function(){$('noMapText').textContent='Couldn’t load Google Maps. Check the connection.'};
+  document.head.appendChild(s);
+}
+function initMap(){
+  var c=here?{lat:here.lat,lng:here.lon}:{lat:39.5,lng:-98.35};
+  map=new google.maps.Map($('map'),{center:c,zoom:here?15:4,disableDefaultUI:true,gestureHandling:'greedy',clickableIcons:false,styles:NIGHT,backgroundColor:'#0b1016'});
+  new google.maps.TrafficLayer().setMap(map);
+  $('noMap').style.display='none';$('searchBar').style.display='flex';$('mapBtns').style.display='grid';
+  map.addListener('dragstart',function(){follow=false;$('recenter').classList.add('lost')});
+  drawPins();mapMoved();
+}
+var firstFix=true;
+function mapMoved(){
+  if(!map||!here)return;
+  var p={lat:here.lat,lng:here.lon};
+  if(!meDot)meDot=new google.maps.Marker({map:map,position:p,zIndex:9,clickable:false,
+    icon:{path:google.maps.SymbolPath.CIRCLE,scale:9,fillColor:'#4cb5ff',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:3}});
+  else meDot.setPosition(p);
+  if(follow&&!picked){map.panTo(p);if(firstFix){map.setZoom(15);firstFix=false}}
+}
+function drawPins(){
+  if(!map)return;
+  ['home','work'].forEach(function(k){
+    var d=store.json(k);
+    if(pins[k]){pins[k].setMap(null);pins[k]=null}
+    if(d)pins[k]=new google.maps.Marker({map:map,position:{lat:d.lat,lng:d.lon},label:{text:k==='home'?'H':'W',color:'#0b1016',fontWeight:'700'},clickable:false,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:'#ffc547',fillOpacity:1,strokeColor:'#0b1016',strokeWeight:2}});
+  });
+}
+$('zin').addEventListener('click',function(){if(map)map.setZoom(map.getZoom()+1)});
+$('zout').addEventListener('click',function(){if(map)map.setZoom(map.getZoom()-1)});
+$('recenter').addEventListener('click',function(){
+  follow=true;$('recenter').classList.remove('lost');
+  if(map&&here){map.panTo({lat:here.lat,lng:here.lon});if(map.getZoom()<14)map.setZoom(15)}
+});
+
+/* search with Google's place suggestions */
+var typeTimer=0,searchSeq=0;
+$('q').addEventListener('input',function(){
+  var v=$('q').value.trim();$('searchBar').classList.toggle('typing',!!v);
+  clearTimeout(typeTimer);
+  if(v.length<3){$('sugg').classList.remove('on');return}
+  typeTimer=setTimeout(function(){suggest(v)},300);
+});
+$('q').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var f=$('sugg').querySelector('button:not([disabled])');if(f)f.click()}});
+$('qClear').addEventListener('click',function(){$('q').value='';$('searchBar').classList.remove('typing');$('sugg').classList.remove('on');clearPick()});
+function suggest(v){
+  if(!(window.google&&google.maps&&google.maps.places&&google.maps.places.AutocompleteSuggestion)){say('Search needs the Google Maps key');return}
+  var seq=++searchSeq;
+  if(!sessionTok)sessionTok=new google.maps.places.AutocompleteSessionToken();
+  var req={input:v,sessionToken:sessionTok,includedRegionCodes:['us']};
+  if(here){req.origin={lat:here.lat,lng:here.lon};req.locationBias={center:{lat:here.lat,lng:here.lon},radius:50000}}
+  google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(req).then(function(res){
+    if(seq!==searchSeq)return;
+    var list=(res.suggestions||[]).filter(function(s){return s.placePrediction}).slice(0,5);
+    var box=$('sugg');box.innerHTML='';
+    if(!list.length){box.innerHTML='<button disabled><b>No matches</b></button>';box.classList.add('on');return}
+    list.forEach(function(s){
+      var pp=s.placePrediction,b=document.createElement('button');
+      var main=pp.mainText?pp.mainText.text:pp.text.text,sec=pp.secondaryText?pp.secondaryText.text:'';
+      if(pp.distanceMeters)sec=milesText(pp.distanceMeters)+(sec?' · '+sec:'');
+      var bb=document.createElement('b');bb.textContent=main;var sm=document.createElement('small');sm.textContent=sec;
+      b.appendChild(bb);b.appendChild(sm);
+      b.addEventListener('click',function(){pick(pp)});
+      box.appendChild(b);
+    });
+    box.classList.add('on');
+  }).catch(function(e){if(seq===searchSeq)say('Search failed: '+e.message)});
+}
+function pick(pp){
+  $('sugg').classList.remove('on');$('q').blur();
+  var place=pp.toPlace();
+  place.fetchFields({fields:['displayName','formattedAddress','location']}).then(function(){
+    sessionTok=null;
+    showResult({lat:place.location.lat(),lon:place.location.lng(),label:place.displayName||'',addr:place.formattedAddress||''});
+  }).catch(function(e){say('Couldn’t open that place: '+e.message)});
+}
+function showResult(d){
+  picked=d;follow=false;$('recenter').classList.add('lost');
+  $('sName').textContent=d.label;$('sAddr').textContent=d.addr;$('sEta').innerHTML='<small>Working out drive time…</small>';
+  $('sGo').setAttribute('href',navUrl(d));
+  $('sheet').classList.add('on');
+  if(resultPin)resultPin.setMap(null);
+  if(line){line.setMap(null);line=null}
+  resultPin=new google.maps.Marker({map:map,position:{lat:d.lat,lng:d.lon}});
+  map.panTo({lat:d.lat,lng:d.lon});map.setZoom(15);
+  if(!here){$('sEta').innerHTML='<small>Waiting for your location</small>';return}
+  driveTime(here,d,true).then(function(r){
+    if(picked!==d)return;
+    $('sEta').innerHTML=minsText(r.sec)+' min <small>· '+milesText(r.meters)+' · '+(r.live?'live traffic':'normal traffic')+'</small>';
+    if(r.line&&google.maps.geometry){
+      var path=google.maps.geometry.encoding.decodePath(r.line);
+      line=new google.maps.Polyline({map:map,path:path,strokeColor:'#4cb5ff',strokeOpacity:.9,strokeWeight:6});
+      var bounds=new google.maps.LatLngBounds();path.forEach(function(pt){bounds.extend(pt)});
+      map.fitBounds(bounds,{top:80,bottom:170,left:30,right:90});
+    }
+  }).catch(function(e){if(picked===d)$('sEta').innerHTML='<small>Couldn’t get drive time: '+e.message+'</small>'});
+}
+function clearPick(){
+  picked=null;$('sheet').classList.remove('on');
+  if(resultPin){resultPin.setMap(null);resultPin=null}
+  if(line){line.setMap(null);line=null}
+}
+$('sheetX').addEventListener('click',function(){clearPick();$('q').value='';$('searchBar').classList.remove('typing')});
+$('sGo').addEventListener('click',function(){say('Opening Google Maps')});
+function setPlace(k,d){
+  store.set(k,JSON.stringify({lat:d.lat,lon:d.lon,label:d.label||''}));
+  lastRoute[k]=0;route(k,true);drawPins();
+}
+$('sHome').addEventListener('click',function(){if(picked){setPlace('home',picked);say('Home saved')}});
+$('sWork').addEventListener('click',function(){if(picked){setPlace('work',picked);say('Work saved')}});
+
+/* ================= Settings ================= */
+function openSetup(){
+  $('cid').value=store.get('cid')||'';$('gkey').value=store.get('gkey')||'';
+  $('gkeyMsg').textContent=gkey()?(store.get('gkey')?'Using the key saved here':'Using the built-in key'):'';
+  var h=store.json('home'),w=store.json('work');
+  $('placeMsg').textContent=(h?'Home set'+(h.label?': '+h.label:''):'Home not set')+' · '+(w?'Work set'+(w.label?': '+w.label:''):'Work not set');
+  $('cidMsg').textContent=store.json('tok')?'Connected':'';$('setup').classList.add('on');
+}
 $('gear').addEventListener('click',openSetup);
 $('done').addEventListener('click',function(){$('setup').classList.remove('on');routes(true)});
 $('saveCid').addEventListener('click',function(){var v=$('cid').value.trim();if(!v){$('cidMsg').textContent='Paste the Client ID first';return}store.set('cid',v);login()});
 $('logout').addEventListener('click',function(){store.set('tok',null);state=null;setConnected(false);$('cidMsg').textContent='Disconnected'});
-$('saveMbx').addEventListener('click',function(){var v=$('mbx').value.trim();store.set('mbx',v||null);$('mbxMsg').textContent=v?'Saved, using live traffic':'Cleared, using normal traffic';lastRoute={home:0,work:0}});
+$('saveGkey').addEventListener('click',function(){
+  var v=$('gkey').value.trim();store.set('gkey',v||null);
+  $('gkeyMsg').textContent='Saved. Reloading the map…';setTimeout(function(){location.reload()},600);
+});
 document.querySelectorAll('[data-here]').forEach(function(b){b.addEventListener('click',function(){
-  var p=b.dataset.here;$(p+'Msg').textContent='Getting location…';
+  var k=b.dataset.here;$('placeMsg').textContent='Getting location…';
   navigator.geolocation.getCurrentPosition(function(pos){
-    store.set(p,JSON.stringify({lat:pos.coords.latitude,lon:pos.coords.longitude,label:'set from location'}));
-    $(p+'Msg').textContent='Saved: set from location';lastRoute[p]=0;
-  },function(e){$(p+'Msg').textContent=e.code===1?'Location permission was denied':'Couldn’t get location'},{enableHighAccuracy:true,timeout:20000});
-})});
-document.querySelectorAll('[data-find]').forEach(function(b){b.addEventListener('click',function(){
-  var p=b.dataset.find,q=$(p+'Addr').value.trim();if(!q)return;
-  $(p+'Msg').textContent='Searching…';
-  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(j){
-    if(!j||!j[0]){$(p+'Msg').textContent='No match. Try adding the city and state.';return}
-    var label=j[0].display_name.split(',').slice(0,3).join(',');
-    store.set(p,JSON.stringify({lat:+j[0].lat,lon:+j[0].lon,label:label}));
-    $(p+'Msg').textContent='Saved: '+label;lastRoute[p]=0;
-  }).catch(function(){$(p+'Msg').textContent='Search failed, check the connection'});
+    setPlace(k,{lat:pos.coords.latitude,lon:pos.coords.longitude,label:'set from location'});
+    $('placeMsg').textContent=(k==='home'?'Home':'Work')+' saved from where you are';
+  },function(e){$('placeMsg').textContent=e.code===1?'Location permission was denied':'Couldn’t get location'},{enableHighAccuracy:true,timeout:20000});
 })});
 
 /* go */
 handleRedirect().then(function(){setConnected(!!store.json('tok'));poll()});
-startGPS();routes(true);
+startGPS();routes(true);loadMap();
 })();
 </script>
 </body>

@@ -15,6 +15,6 @@ Tabs:
 
 ## Car Home (`/dash/`)
 
-A car home screen: Spotify controls on the left, minutes to home and work on the right.
-Open the gear to paste a Spotify Client ID, set Home and Work, and optionally add a Mapbox token for live traffic.
+A car home screen: a live Google map with search on the left, Spotify controls and minutes to home and work on the right. Tapping Home, Work or a search result hands off to the Google Maps app for turn-by-turn directions.
+Needs a Google Maps key (restricted to this site) for the map, search and live-traffic times; without one it falls back to normal-traffic estimates.
 Settings stay on the phone only; nothing personal is stored in this repo.
