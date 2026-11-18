@@ -148,7 +148,8 @@ body.screen .edge{display:block}
   </section>
 </main>
 <script>
-{
+(function(){
+"use strict";
 const $=id=>document.getElementById(id);
 const R={audio:'not tested',motion:'not tested',wake:'not tested',latency:[],taps:0,hits:{}};
 
@@ -290,7 +291,7 @@ $('copy').addEventListener('click',async()=>{
   try{await navigator.clipboard.writeText(txt);$('copied').textContent='Copied. Paste it into chat.'}
   catch(e){$('copied').textContent='Copy was blocked. Screenshot this tab instead.'}
 });
-}
+})();
 </script>
 </body>
 </html>
