@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Car Test">
+<title>CarBridge test bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a technician's bench tool, calm and exact, readable at a glance.
+   IDEA: a broadcast test card plus an instrument cluster on a car screen.
+   PICTURE: the test card itself, edge markers, colour bars, live screen size huge in the middle.
+   COLOUR and TYPE: night cabin slate, signal green / amber / red only for results; Barlow Condensed figures, Barlow text.
+   LAYOUT: big tab strip on top, one full-height panel below, sized for a wide landscape car display. */
+:root{color-scheme:dark;--bg:#0d1319;--deep:#090d12;--panel:#151e27;--line:#26333f;--ink:#eef3f6;--dim:#93a4b2;--go:#38d39f;--warn:#ffc547;--hit:#4cb5ff;--miss:#ff5d73}
+:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 Barlow,system-ui,sans-serif;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr);height:100vh;height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.num{font-family:"Barlow Condensed",system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
+nav{display:flex;gap:6px;padding:8px;background:var(--deep);border-bottom:1px solid var(--line);overflow-x:auto}
+nav button,.btn{min-height:52px;padding:0 18px;border:0;border-radius:10px;background:var(--panel);color:var(--dim);font:700 20px/1 "Barlow Condensed",system-ui,sans-serif;white-space:nowrap}
+nav button{flex:1 0 auto}
+nav button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.btn{color:var(--ink);border:1px solid var(--line)}
+.btn:active{background:var(--line)}
+button:focus-visible{outline:3px solid var(--hit);outline-offset:2px}
+main{position:relative;overflow:hidden}
+section{position:absolute;inset:0;display:none;padding:12px;overflow:auto}
+section.on{display:block}
+#screen.on{display:grid;grid-template-rows:minmax(0,1fr) auto}
+/* Screen */
+.card{position:relative;min-height:0;height:100%;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;background:radial-gradient(circle at 50% 55%,#1b2733,var(--bg) 70%)}
+.bars{display:grid;grid-template-columns:repeat(8,1fr);height:clamp(18px,6vh,44px)}
+.bars i:nth-child(1){background:#f2f2f2}.bars i:nth-child(2){background:#f2e23c}.bars i:nth-child(3){background:#35d6e6}.bars i:nth-child(4){background:#3ed16b}
+.bars i:nth-child(5){background:#d64fd2}.bars i:nth-child(6){background:#e6453c}.bars i:nth-child(7){background:#3a52e0}.bars i:nth-child(8){background:#111}
+.mid{position:relative;display:grid;place-items:center;text-align:center;padding:16px}
+.cross{position:absolute;inset:0;pointer-events:none}
+.cross:before,.cross:after{content:"";position:absolute;background:var(--line)}
+.cross:before{left:50%;top:0;bottom:0;width:1px}.cross:after{top:50%;left:0;right:0;height:1px}
+.big{position:relative;font-size:clamp(40px,min(13vw,20vh),132px);line-height:1;letter-spacing:-.01em}
+.big small{display:block;font:600 15px/1.3 Barlow,sans-serif;color:var(--dim);letter-spacing:0;margin-top:8px}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));background:var(--panel);border-top:1px solid var(--line)}
+.facts div{padding:6px 12px;box-shadow:inset -1px 0 var(--line),inset 0 -1px var(--line)}
+.facts b{display:block;font:600 13px/1.2 Barlow,sans-serif;color:var(--dim)}
+.facts span{font-size:19px;white-space:nowrap}
+.edge{position:fixed;background:var(--warn);z-index:5;pointer-events:none;display:none}
+body.screen .edge{display:block}
+.e-t{top:0;left:0;right:0;height:4px}.e-b{bottom:0;left:0;right:0;height:4px}.e-l{top:0;bottom:0;left:0;width:4px}.e-r{top:0;bottom:0;right:0;width:4px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.note{color:var(--dim);font-size:15px}
+/* Touch */
+#pad{position:absolute;inset:12px;border-radius:14px;border:1px dashed var(--line);background:var(--deep);touch-action:none}
+#pad canvas{position:absolute;inset:0;width:100%;height:100%}
+.hud{position:absolute;left:24px;top:22px;pointer-events:none;display:flex;gap:28px}
+.hud div b{display:block;font:600 13px Barlow,sans-serif;color:var(--dim)}
+.hud span{font-size:34px}
+/* Buttons */
+.sizes{display:grid;gap:10px}
+.size{display:grid;grid-template-columns:110px minmax(0,1fr) 120px;align-items:center;gap:12px;background:var(--panel);border-radius:12px;padding:10px 14px}
+.size .lab{font-size:28px}
+.size .lab small{display:block;font:600 13px Barlow,sans-serif;color:var(--dim)}
+.zone{display:flex;justify-content:space-around;align-items:center;padding:12px 0;border-radius:10px;background:var(--deep)}
+.zone button{border:0;border-radius:12px;background:#2a3a48;color:var(--ink);font:700 18px "Barlow Condensed",sans-serif;transition:background .15s}
+.zone button.hit{background:var(--go);color:var(--bg)}
+.zone.miss{box-shadow:inset 0 0 0 3px var(--miss)}
+.rate{text-align:right;font-size:28px}
+.rate small{display:block;font:600 13px Barlow,sans-serif;color:var(--dim)}
+/* Text */
+.samples p{margin:0 0 14px;line-height:1.15;display:flex;gap:16px;align-items:baseline}
+.samples em{flex:none;width:56px;font:600 13px Barlow,sans-serif;font-style:normal;color:var(--dim);text-align:right}
+/* Sound */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.tile{background:var(--panel);border-radius:14px;padding:16px}
+.tile h2{margin:0 0 4px;font:700 26px "Barlow Condensed",sans-serif}
+.status{margin-top:10px;font-size:15px;color:var(--dim)}
+.status.ok{color:var(--go)}.status.bad{color:var(--miss)}
+.meter{display:grid;grid-template-columns:24px 1fr 60px;gap:10px;align-items:center;margin-top:8px}
+.meter i{display:block;height:12px;border-radius:6px;background:var(--line);position:relative;overflow:hidden}
+.meter i b{position:absolute;top:0;bottom:0;left:50%;background:var(--hit);border-radius:6px}
+@media(max-width:600px){.size{grid-template-columns:80px minmax(0,1fr)}.rate{grid-column:1/-1;text-align:left}.big{font-size:56px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body class="screen">
+<div class="edge e-t"></div><div class="edge e-b"></div><div class="edge e-l"></div><div class="edge e-r"></div>
+<nav role="tablist">
+  <button role="tab" data-tab="screen" aria-selected="true">Screen</button>
+  <button role="tab" data-tab="touch" aria-selected="false">Touch</button>
+  <button role="tab" data-tab="buttons" aria-selected="false">Buttons</button>
+  <button role="tab" data-tab="text" aria-selected="false">Text</button>
+  <button role="tab" data-tab="sound" aria-selected="false">Sound &amp; sensors</button>
+</nav>
+<main>
+  <section id="screen" class="on">
+    <div class="card">
+      <div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="mid"><div class="cross"></div>
+        <div class="big num"><span id="vp">–</span><small>Usable page size in points. Amber lines mark the true screen edges: a missing one means the car is cropping.</small></div>
+      </div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <div class="row"><button class="btn" id="copy">Copy report</button><span class="note" id="copied">Copies every result from all tabs, ready to paste into chat.</span></div>
+  </section>
+
+  <section id="touch">
+    <div id="pad"><canvas id="cv"></canvas>
+      <div class="hud">
+        <div><b>Fingers down</b><span class="num" id="fingers">0</span></div>
+        <div><b>Last touch</b><span class="num" id="pos">–</span></div>
+        <div><b>Response</b><span class="num" id="lat">–</span></div>
+        <div><b>Taps</b><span class="num" id="taps">0</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="buttons">
+    <p class="note" style="margin:0 0 10px">Tap the middle of each button a few times, the way you would while driving. Green is a hit, a red outline is a miss.</p>
+    <div class="sizes" id="sizes"></div>
+    <div class="row"><button class="btn" id="resetHits">Reset</button></div>
+  </section>
+
+  <section id="text">
+    <div class="samples" id="samples"></div>
+  </section>
+
+  <section id="sound">
+    <div class="tiles">
+      <div class="tile"><h2>Car speakers</h2><p class="note">Plays through whatever the phone is routed to.</p>
+        <div class="row"><button class="btn" data-tone="0">Tone</button><button class="btn" data-tone="-1">Left</button><button class="btn" data-tone="1">Right</button><button class="btn" id="speak">Voice</button></div>
+        <div class="status" id="audioStatus">Not tested yet</div></div>
+      <div class="tile"><h2>Motion sensor</h2><p class="note">Feels bumps and turns, if the browser allows it.</p>
+        <div class="row"><button class="btn" id="motion">Start</button></div>
+        <div class="meter"><span class="num">X</span><i><b id="mx"></b></i><span class="num" id="vx">–</span></div>
+        <div class="meter"><span class="num">Y</span><i><b id="my"></b></i><span class="num" id="vy">–</span></div>
+        <div class="meter"><span class="num">Z</span><i><b id="mz"></b></i><span class="num" id="vz">–</span></div>
+        <div class="status" id="motionStatus">Not tested yet</div></div>
+      <div class="tile"><h2>Keep screen on</h2><p class="note">Stops the phone dimming while this page is open.</p>
+        <div class="row"><button class="btn" id="wake">Try it</button></div>
+        <div class="status" id="wakeStatus">Not tested yet</div></div>
+    </div>
+  </section>
+</main>
+<script>
+{
+const $=id=>document.getElementById(id);
+const R={audio:'not tested',motion:'not tested',wake:'not tested',latency:[],taps:0,hits:{}};
+
+/* tabs */
+const tabs=[...document.querySelectorAll('nav button')];
+function show(name){
+  tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.tab===name));
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===name));
+  document.body.classList.toggle('screen',name==='screen');
+  try{localStorage.setItem('cbTab',name)}catch(e){}
+  if(name==='touch')sizeCanvas();
+}
+tabs.forEach(t=>t.addEventListener('click',()=>show(t.dataset.tab)));
+try{const s=localStorage.getItem('cbTab');if(s&&$(s))show(s)}catch(e){}
+
+/* screen facts */
+const probe=document.createElement('div');
+probe.style.cssText='position:fixed;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+document.body.appendChild(probe);
+function facts(){
+  const cs=getComputedStyle(probe);
+  const ins=['Top','Right','Bottom','Left'].map(k=>parseFloat(cs['padding'+k])||0);
+  const standalone=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+  const f={
+    'Window':innerWidth+' × '+innerHeight,
+    'Screen':screen.width+' × '+screen.height,
+    'Pixel ratio':(devicePixelRatio||1)+'×',
+    'Orientation':innerWidth>=innerHeight?'Landscape':'Portrait',
+    'Mode':standalone?'Home Screen app':'Browser tab',
+    'Safe area':ins.join(' / '),
+    'Touch points':navigator.maxTouchPoints||0,
+    'Browser':(navigator.userAgent.match(/(iPhone OS|CPU OS|Android) [\d_.]+/)||['unknown'])[0].replace(/_/g,'.')
+  };
+  $('vp').textContent=innerWidth+' × '+innerHeight;
+  $('facts').innerHTML=Object.entries(f).map(([k,v])=>`<div><b>${k}</b><span class="num">${v}</span></div>`).join('');
+  R.facts=f;
+}
+addEventListener('resize',facts);addEventListener('orientationchange',()=>setTimeout(facts,300));
+facts();
+
+/* touch pad */
+const pad=$('pad'),cv=$('cv'),ctx=cv.getContext('2d');let dots=[];
+function sizeCanvas(){const r=pad.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);draw()}
+new ResizeObserver(sizeCanvas).observe(pad);
+function draw(){
+  const w=cv.width/(devicePixelRatio||1),h=cv.height/(devicePixelRatio||1),now=performance.now();
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle='#26333f';ctx.lineWidth=1;
+  for(let x=0;x<w;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+  for(let y=0;y<h;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+  dots=dots.filter(d=>now-d.t<1200);
+  for(const d of dots){const a=1-(now-d.t)/1200;ctx.globalAlpha=a;ctx.fillStyle=d.down?'#38d39f':'#4cb5ff';ctx.beginPath();ctx.arc(d.x,d.y,d.down?26:8,0,7);ctx.fill()}
+  ctx.globalAlpha=1;
+  if(dots.length)requestAnimationFrame(draw);
+}
+function touchAt(t,down){const r=pad.getBoundingClientRect();const x=t.clientX-r.left,y=t.clientY-r.top;dots.push({x,y,t:performance.now(),down});$('pos').textContent=Math.round(x)+', '+Math.round(y);if(dots.length<3)requestAnimationFrame(draw)}
+pad.addEventListener('touchstart',e=>{e.preventDefault();const t0=performance.now();
+  for(const t of e.changedTouches){touchAt(t,true);R.taps++}
+  $('fingers').textContent=e.touches.length;$('taps').textContent=R.taps;
+  const ts=e.timeStamp;
+  requestAnimationFrame(()=>{let ms=performance.now()-ts;if(!(ms>=0&&ms<1000))ms=performance.now()-t0;ms=Math.round(ms);R.latency.push(ms);if(R.latency.length>20)R.latency.shift();$('lat').textContent=ms+' ms'});
+},{passive:false});
+pad.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)touchAt(t,false)},{passive:false});
+pad.addEventListener('touchend',e=>{$('fingers').textContent=e.touches.length});
+pad.addEventListener('mousedown',e=>{touchAt(e,true);R.taps++;$('taps').textContent=R.taps});
+
+/* button sizes */
+const SIZES=[44,60,76,96,120];
+$('sizes').innerHTML=SIZES.map(s=>`<div class="size"><div class="lab num">${s}<small>points</small></div>
+  <div class="zone" data-s="${s}">${[1,2,3].map(i=>`<button style="width:${s}px;height:${s}px" data-s="${s}" aria-label="${s} point button ${i}">${i}</button>`).join('')}</div>
+  <div class="rate num" id="rate${s}">–<small>hit rate</small></div></div>`).join('');
+function rate(s){const h=R.hits[s]||{hit:0,miss:0},n=h.hit+h.miss;$('rate'+s).innerHTML=(n?Math.round(h.hit/n*100)+'%':'–')+`<small>${h.hit} of ${n} hits</small>`}
+document.querySelectorAll('.zone').forEach(z=>z.addEventListener('pointerdown',e=>{
+  const s=z.dataset.s;R.hits[s]=R.hits[s]||{hit:0,miss:0};
+  const b=e.target.closest('button');
+  if(b){R.hits[s].hit++;b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),220)}
+  else{R.hits[s].miss++;z.classList.add('miss');setTimeout(()=>z.classList.remove('miss'),260)}
+  rate(s);
+}));
+$('resetHits').addEventListener('click',()=>{R.hits={};SIZES.forEach(rate)});
+SIZES.forEach(rate);
+
+/* text sizes */
+const lines=['Next: turn left on Main St','Now playing: Episode 42','1.2 mi · 4 min','Arriving 6:45 PM','Skip 30 s','Volume 60%'];
+$('samples').innerHTML=[14,18,24,32,44,60].map((s,i)=>`<p><em>${s} pt</em><span style="font-size:${s}px;font-weight:${s>=32?600:400}">${lines[i]}</span></p>`).join('');
+
+/* sound */
+let ac=null;
+function tone(pan){
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended')ac.resume();
+    const o=ac.createOscillator(),g=ac.createGain(),p=ac.createStereoPanner?ac.createStereoPanner():null;
+    o.frequency.value=pan<0?523:pan>0?659:440;g.gain.setValueAtTime(0.0001,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.4,ac.currentTime+0.05);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+0.9);
+    if(p){p.pan.value=pan;o.connect(g).connect(p).connect(ac.destination)}else o.connect(g).connect(ac.destination);
+    o.start();o.stop(ac.currentTime+1);
+    R.audio='tone played'+(pan?(pan<0?' (left)':' (right)'):'');setStatus('audioStatus','Played. Did you hear it in the car?',true);
+  }catch(err){R.audio='blocked: '+err.message;setStatus('audioStatus','Blocked here: '+err.message,false)}
+}
+document.querySelectorAll('[data-tone]').forEach(b=>b.addEventListener('click',()=>tone(+b.dataset.tone)));
+$('speak').addEventListener('click',()=>{
+  if(!('speechSynthesis' in window)){R.voice='unsupported';setStatus('audioStatus','Voice not supported',false);return}
+  const u=new SpeechSynthesisUtterance('Testing the car speakers. One, two, three.');speechSynthesis.cancel();speechSynthesis.speak(u);
+  R.voice='spoken';setStatus('audioStatus','Speaking now',true);
+});
+function setStatus(id,txt,ok){const el=$(id);el.textContent=txt;el.className='status '+(ok?'ok':'bad')}
+
+/* motion */
+function onMotion(e){
+  const a=e.accelerationIncludingGravity||{};const v=[a.x,a.y,a.z].map(n=>typeof n==='number'?n:0);
+  ['x','y','z'].forEach((k,i)=>{const n=v[i];$('v'+k).textContent=n.toFixed(1);const w=Math.min(50,Math.abs(n)/20*50);const b=$('m'+k);b.style.width=w+'%';b.style.left=(n<0?50-w:50)+'%'});
+  if(R.motion!=='working'){R.motion='working';setStatus('motionStatus','Working',true)}
+}
+$('motion').addEventListener('click',async()=>{
+  try{
+    if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
+      const p=await DeviceMotionEvent.requestPermission();if(p!=='granted'){R.motion='denied';setStatus('motionStatus','Permission denied',false);return}
+    }
+    addEventListener('devicemotion',onMotion);
+    R.motion='waiting';setStatus('motionStatus','Listening… move the phone. If nothing changes, this page is not allowed motion here.',true);
+    setTimeout(()=>{if(R.motion==='waiting'){R.motion='no data';setStatus('motionStatus','No motion data. Open the page from its own web address to allow sensors.',false)}},3000);
+  }catch(err){R.motion='blocked: '+err.message;setStatus('motionStatus','Blocked here: '+err.message,false)}
+});
+
+/* wake lock */
+$('wake').addEventListener('click',async()=>{
+  if(!('wakeLock' in navigator)){R.wake='unsupported';setStatus('wakeStatus','Not supported in this browser',false);return}
+  try{await navigator.wakeLock.request('screen');R.wake='working';setStatus('wakeStatus','Screen will stay on while this page is open',true)}
+  catch(err){R.wake='blocked: '+err.message;setStatus('wakeStatus','Blocked here: '+err.message,false)}
+});
+
+/* report */
+$('copy').addEventListener('click',async()=>{
+  facts();
+  const lat=R.latency.length?Math.round(R.latency.reduce((a,b)=>a+b,0)/R.latency.length)+' ms avg':'not tested';
+  const hits=SIZES.map(s=>{const h=R.hits[s];return h?`${s}pt ${h.hit}/${h.hit+h.miss}`:`${s}pt –`}).join(', ');
+  const txt=['CarBridge test bench report',...Object.entries(R.facts).map(([k,v])=>k+': '+v),'Touch response: '+lat+' ('+R.taps+' taps)','Button hits: '+hits,'Audio: '+R.audio+(R.voice?', voice '+R.voice:''),'Motion: '+R.motion,'Keep screen on: '+R.wake].join('\n');
+  try{await navigator.clipboard.writeText(txt);$('copied').textContent='Copied. Paste it into chat.'}
+  catch(e){$('copied').textContent='Copy was blocked. Screenshot this tab instead.'}
+});
+}
+</script>
+</body>
+</html>
