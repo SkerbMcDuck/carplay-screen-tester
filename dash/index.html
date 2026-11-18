@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Car Home">
+<title>Car Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Car home screen: Spotify on the left, minutes to home and work on the right.
+   Built for a wide landscape car display, one finger at a time, big targets. */
+:root{color-scheme:dark;--bg:#0b1016;--panel:#141c25;--panel2:#1b2631;--line:#263340;--ink:#eef3f6;--dim:#91a3b1;--go:#1ed760;--warn:#ffc547;--bad:#ff5d73;--blue:#4cb5ff}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.3 Barlow,system-ui,sans-serif;overflow:hidden;height:100vh;height:100dvh;
+  padding:max(8px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));
+  display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.num{font-family:"Barlow Condensed",system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+header{display:flex;align-items:center;gap:12px}
+#clock{font-size:clamp(24px,5vh,34px)}
+#device{color:var(--dim);font-size:15px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon{width:52px;height:52px;border-radius:12px;background:var(--panel);display:grid;place-items:center}
+.icon svg{width:26px;height:26px;fill:var(--ink)}
+main{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:10px;min-height:0}
+.card{background:var(--panel);border-radius:16px;min-height:0;overflow:hidden}
+/* music */
+#music{display:grid;grid-template-rows:minmax(0,1fr) auto auto;padding:12px;gap:10px}
+.now{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;min-height:0}
+#art{height:min(100%,30vh);aspect-ratio:1;max-height:170px;min-height:64px;border-radius:10px;background:var(--panel2) center/cover no-repeat}
+#title{font:700 clamp(22px,5.4vh,36px)/1.08 "Barlow Condensed",sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+#sub{color:var(--dim);font-size:clamp(15px,3.4vh,20px);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#watch{display:none;margin-top:10px;min-height:44px;padding:0 14px;border-radius:10px;background:var(--panel2);font:700 17px "Barlow Condensed",sans-serif;color:var(--warn)}
+#watch.on{display:inline-block}
+.prog{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;color:var(--dim);font-size:15px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--ink);border-radius:4px}
+.ctl{display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;gap:8px}
+.ctl button{height:clamp(64px,15vh,86px);border-radius:14px;background:var(--panel2);display:grid;place-items:center;font:700 20px "Barlow Condensed",sans-serif}
+.ctl button:active{background:var(--line)}
+.ctl svg{width:34px;height:34px;fill:var(--ink)}
+.ctl #play{background:var(--ink)}.ctl #play svg{fill:var(--bg);width:40px;height:40px}
+.ctl button[hidden]{display:grid;visibility:hidden}
+#connect{display:none;place-items:center;text-align:center;padding:20px;gap:12px}
+#music.off>*{display:none}#music.off #connect{display:grid}
+.big-btn{min-height:64px;padding:0 26px;border-radius:14px;background:var(--go);color:#06140b;font:700 24px "Barlow Condensed",sans-serif}
+/* drive times */
+#places{display:grid;grid-template-rows:1fr 1fr;gap:10px;min-height:0}
+.place{display:grid;grid-template-rows:auto 1fr auto;padding:12px 16px;border-radius:16px;background:var(--panel);min-height:0;text-align:left}
+.place:active{background:var(--panel2)}
+.place b{font:600 15px Barlow,sans-serif;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.mins{display:flex;align-items:baseline;gap:8px;align-self:center}
+.mins .num{font-size:clamp(44px,13vh,92px);line-height:1}
+.mins small{font:600 clamp(16px,3.6vh,22px) Barlow,sans-serif;color:var(--dim)}
+.place .meta{color:var(--dim);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place.here .num{color:var(--go)}
+#msg{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font:600 16px Barlow,sans-serif;max-width:90vw;display:none;z-index:5}
+/* settings */
+#setup{position:fixed;inset:0;background:var(--bg);z-index:4;display:none;overflow:auto;padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 24px max(16px,env(safe-area-inset-left))}
+#setup.on{display:block}
+#setup h1{font:700 30px "Barlow Condensed",sans-serif;margin:0;flex:1}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.box{background:var(--panel);border-radius:14px;padding:14px}
+.box h2{margin:0 0 6px;font:700 22px "Barlow Condensed",sans-serif}
+.box p{margin:0 0 10px;color:var(--dim);font-size:15px}
+.box code{color:var(--ink);font-size:13px;word-break:break-all;-webkit-user-select:text;user-select:text}
+input{width:100%;min-height:48px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:16px Barlow,sans-serif;padding:0 12px;-webkit-user-select:text;user-select:text}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.btn{min-height:48px;padding:0 16px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);font:700 18px "Barlow Condensed",sans-serif}
+.btn:active{background:var(--line)}
+.saved{color:var(--go);font-size:14px;margin-top:6px;min-height:18px}
+@media(max-aspect-ratio:1/1){main{grid-template-columns:1fr;grid-template-rows:minmax(0,1.4fr) minmax(0,1fr)}#places{grid-template-rows:none;grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="err" style="display:none;position:fixed;inset:auto 0 0 0;z-index:9;background:#ff5d73;color:#0b1016;padding:14px;font:700 16px/1.3 Barlow,sans-serif;-webkit-user-select:text;user-select:text"></div>
+<script>window.onerror=function(m,s,l,c){var e=document.getElementById('err');e.style.display='block';e.textContent='Page error: '+m+' (line '+l+':'+c+'). Screenshot this and send it to Claude.';};</script>
+
+<header>
+  <span class="num" id="clock">–</span>
+  <span id="device"></span>
+  <button class="icon" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1-2 3.5L4.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg></button>
+</header>
+
+<main>
+  <section class="card off" id="music">
+    <div class="now">
+      <div id="art"></div>
+      <div>
+        <div id="title">Nothing playing</div>
+        <div id="sub">Start something in Spotify</div>
+        <button id="watch">▶ Watch in Spotify</button>
+      </div>
+    </div>
+    <div class="prog"><span class="num" id="pos">0:00</span><div class="bar"><i id="fill"></i></div><span class="num" id="dur">0:00</span></div>
+    <div class="ctl">
+      <button id="back" aria-label="Back"></button>
+      <button id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9.5 12z"/></svg></button>
+      <button id="play" aria-label="Play or pause"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4.5v15L19.5 12z"/></svg></button>
+      <button id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l10.5-7z"/></svg></button>
+      <button id="fwd" aria-label="Forward"></button>
+    </div>
+    <div id="connect">
+      <div style="font:700 30px 'Barlow Condensed',sans-serif">Spotify</div>
+      <div style="color:var(--dim);max-width:380px" id="connectNote">Connect once and this screen controls the Spotify app on this phone.</div>
+      <button class="big-btn" id="login">Connect Spotify</button>
+    </div>
+  </section>
+
+  <section id="places">
+    <button class="place" data-p="home"><b>Home</b><div class="mins"><span class="num" id="homeMin">–</span><small id="homeUnit"></small></div><div class="meta" id="homeMeta">Tap to set</div></button>
+    <button class="place" data-p="work"><b>Work</b><div class="mins"><span class="num" id="workMin">–</span><small id="workUnit"></small></div><div class="meta" id="workMeta">Tap to set</div></button>
+  </section>
+</main>
+
+<div id="setup">
+  <div class="top"><h1>Settings</h1><button class="btn" id="done">Done</button></div>
+  <div class="grid">
+    <div class="box"><h2>Spotify</h2>
+      <p>Paste the Client ID from your app at developer.spotify.com. In that app's settings, add this exact Redirect URI:</p>
+      <p><code id="redir"></code></p>
+      <input id="cid" placeholder="Client ID" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row"><button class="btn" id="saveCid">Save and connect</button><button class="btn" id="logout">Disconnect</button></div>
+      <div class="saved" id="cidMsg"></div></div>
+    <div class="box"><h2>Home</h2>
+      <p>Set it while you're there, or type an address.</p>
+      <div class="row"><button class="btn" data-here="home">Use where I am now</button></div>
+      <input id="homeAddr" placeholder="Or type an address" autocomplete="off" style="margin-top:8px">
+      <div class="row"><button class="btn" data-find="home">Find address</button></div>
+      <div class="saved" id="homeMsg"></div></div>
+    <div class="box"><h2>Work</h2>
+      <p>Set it while you're there, or type an address.</p>
+      <div class="row"><button class="btn" data-here="work">Use where I am now</button></div>
+      <input id="workAddr" placeholder="Or type an address" autocomplete="off" style="margin-top:8px">
+      <div class="row"><button class="btn" data-find="work">Find address</button></div>
+      <div class="saved" id="workMsg"></div></div>
+    <div class="box"><h2>Live traffic (optional)</h2>
+      <p>Without this, times are normal-traffic estimates. For live traffic, paste a free Mapbox public token (starts with pk.).</p>
+      <input id="mbx" placeholder="pk.…" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="row"><button class="btn" id="saveMbx">Save</button></div>
+      <div class="saved" id="mbxMsg"></div></div>
+  </div>
+</div>
+<div id="msg"></div>
+
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)};
+var store={
+  get:function(k){try{return localStorage.getItem('ch_'+k)}catch(e){return null}},
+  set:function(k,v){try{if(v===null)localStorage.removeItem('ch_'+k);else localStorage.setItem('ch_'+k,v)}catch(e){}},
+  json:function(k){try{return JSON.parse(store.get(k)||'null')}catch(e){return null}}
+};
+var msgTimer=0;
+function say(t){var m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(msgTimer);msgTimer=setTimeout(function(){m.style.display='none'},3500)}
+function fmt(ms){var s=Math.max(0,Math.floor(ms/1000));var h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (h?h+':'+String(m).padStart(2,'0'):m)+':'+String(r).padStart(2,'0')}
+
+/* clock */
+function tick(){var d=new Date();$('clock').textContent=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
+tick();setInterval(tick,10000);
+
+/* keep the screen on after the first tap (Safari 16.4+) */
+var lock=null;
+function wake(){if(lock||!('wakeLock' in navigator))return;navigator.wakeLock.request('screen').then(function(l){lock=l;l.addEventListener('release',function(){lock=null})}).catch(function(){})}
+document.addEventListener('pointerdown',wake);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){lock=null;wake();poll()}});
+
+/* ---------------- Spotify (PKCE, no server) ---------------- */
+var REDIRECT=location.origin+location.pathname;
+var SCOPES='user-read-playback-state user-modify-playback-state user-read-currently-playing';
+var API='https://api.spotify.com/v1';
+var state=null,stateAt=0,pollTimer=0,backoffUntil=0;
+$('redir').textContent=REDIRECT;
+
+function b64url(buf){var s='';var b=new Uint8Array(buf);for(var i=0;i<b.length;i++)s+=String.fromCharCode(b[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+function randStr(n){var a=new Uint8Array(n);crypto.getRandomValues(a);return b64url(a).slice(0,n)}
+
+function login(){
+  var cid=store.get('cid');
+  if(!cid){openSetup();say('Paste your Spotify Client ID first');return}
+  var verifier=randStr(64),st=randStr(16);
+  store.set('verifier',verifier);store.set('state',st);
+  crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier)).then(function(h){
+    location.href='https://accounts.spotify.com/authorize?'+new URLSearchParams({response_type:'code',client_id:cid,scope:SCOPES,code_challenge_method:'S256',code_challenge:b64url(h),redirect_uri:REDIRECT,state:st}).toString();
+  });
+}
+function saveTokens(j){
+  var t={access:j.access_token,refresh:j.refresh_token||(store.json('tok')||{}).refresh,exp:Date.now()+(j.expires_in-60)*1000};
+  store.set('tok',JSON.stringify(t));return t;
+}
+function tokenRequest(body){
+  return fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body).toString()})
+    .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error_description||j.error||('HTTP '+r.status));return saveTokens(j)})});
+}
+function handleRedirect(){
+  var q=new URLSearchParams(location.search);
+  if(!q.has('code')&&!q.has('error'))return Promise.resolve();
+  history.replaceState(null,'',REDIRECT);
+  if(q.get('error')){say('Spotify said: '+q.get('error'));return Promise.resolve()}
+  var verifier=store.get('verifier');
+  if(!verifier||q.get('state')!==store.get('state')){
+    $('connectNote').textContent='Login finished in a different window than it started. Open this page in a Safari tab and connect there.';
+    return Promise.resolve();
+  }
+  return tokenRequest({grant_type:'authorization_code',code:q.get('code'),redirect_uri:REDIRECT,client_id:store.get('cid'),code_verifier:verifier})
+    .then(function(){store.set('verifier',null);store.set('state',null);say('Spotify connected')})
+    .catch(function(e){say('Connect failed: '+e.message)});
+}
+var refreshing=null;
+function token(){
+  var t=store.json('tok');
+  if(!t)return Promise.reject(new Error('signed out'));
+  if(Date.now()<t.exp)return Promise.resolve(t.access);
+  if(!refreshing)refreshing=tokenRequest({grant_type:'refresh_token',refresh_token:t.refresh,client_id:store.get('cid')})
+    .then(function(n){refreshing=null;return n.access},function(e){refreshing=null;store.set('tok',null);setConnected(false);throw e});
+  return refreshing;
+}
+function api(method,path,body){
+  if(Date.now()<backoffUntil)return Promise.reject(new Error('slow down'));
+  return token().then(function(tk){
+    var o={method:method,headers:{Authorization:'Bearer '+tk}};
+    if(body){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}
+    return fetch(API+path,o);
+  }).then(function(r){
+    if(r.status===429){backoffUntil=Date.now()+((+r.headers.get('Retry-After')||5)*1000);throw new Error('Spotify is rate limiting, waiting')}
+    if(r.status===401){var t=store.json('tok');if(t){t.exp=0;store.set('tok',JSON.stringify(t))}throw new Error('token expired')}
+    if(r.status===204||r.status===202)return null;
+    return r.text().then(function(x){var j=null;try{j=x?JSON.parse(x):null}catch(e){}
+      if(!r.ok){var err=new Error((j&&j.error&&j.error.message)||('HTTP '+r.status));err.reason=j&&j.error&&j.error.reason;err.status=r.status;throw err}
+      return j});
+  });
+}
+function setConnected(on){$('music').classList.toggle('off',!on);if(!on)$('device').textContent=''}
+
+function render(){
+  var s=state;
+  if(!s||!s.item){
+    $('title').textContent='Nothing playing';$('sub').textContent=s?'Paused':'Start something in Spotify, or tap play';
+    $('art').style.backgroundImage='';$('watch').classList.remove('on');setPlayIcon(false);
+    $('pos').textContent='0:00';$('dur').textContent='0:00';$('fill').style.width='0';setSkip(false);return;
+  }
+  var it=s.item,ep=s.currently_playing_type==='episode'||it.type==='episode';
+  $('title').textContent=it.name||'';
+  $('sub').textContent=ep?((it.show&&it.show.name)||'Podcast'):((it.artists||[]).map(function(a){return a.name}).join(', '));
+  var imgs=ep?(it.images&&it.images.length?it.images:(it.show&&it.show.images)||[]):((it.album&&it.album.images)||[]);
+  var url=imgs.length?imgs[0].url:'';
+  var cur=$('art').dataset.url||'';if(url!==cur){$('art').style.backgroundImage=url?'url("'+url+'")':'';$('art').dataset.url=url}
+  $('watch').classList.toggle('on',ep);
+  setPlayIcon(s.is_playing);setSkip(ep);
+  $('device').textContent=s.device?('Playing on '+s.device.name):'';
+  progress();
+}
+function progress(){
+  if(!state||!state.item)return;
+  var p=state.progress_ms+(state.is_playing?Date.now()-stateAt:0),d=state.item.duration_ms||1;
+  p=Math.min(p,d);$('pos').textContent=fmt(p);$('dur').textContent=fmt(d);$('fill').style.width=(p/d*100)+'%';
+}
+setInterval(progress,500);
+function setPlayIcon(playing){$('playIcon').innerHTML=playing?'<path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/>':'<path d="M7 4.5v15L19.5 12z"/>'}
+function setSkip(ep){
+  $('back').hidden=!ep;$('fwd').hidden=!ep;
+  $('back').textContent=ep?'−15':'';$('fwd').textContent=ep?'+30':'';
+}
+function poll(){
+  clearTimeout(pollTimer);
+  if(!store.json('tok')){setConnected(false);return}
+  if(document.visibilityState!=='visible'){pollTimer=setTimeout(poll,10000);return}
+  api('GET','/me/player?additional_types=episode').then(function(j){
+    setConnected(true);state=j;stateAt=Date.now();render();
+  }).catch(function(e){if(e.message==='signed out')setConnected(false)})
+  .then(function(){pollTimer=setTimeout(poll,3000)});
+}
+function soon(){clearTimeout(pollTimer);pollTimer=setTimeout(poll,600)}
+
+/* when Spotify has no active device, wake the one on this phone */
+function withDevice(fn){
+  return fn().catch(function(e){
+    if(e.status!==404&&e.reason!=='NO_ACTIVE_DEVICE')throw e;
+    return api('GET','/me/player/devices').then(function(j){
+      var ds=(j&&j.devices)||[];
+      var d=ds.filter(function(x){return x.type==='Smartphone'})[0]||ds[0];
+      if(!d)throw new Error('Open the Spotify app on the phone once, then try again');
+      return api('PUT','/me/player',{device_ids:[d.id],play:true});
+    });
+  });
+}
+function act(fn,optimistic){
+  if(optimistic)optimistic();
+  withDevice(fn).then(soon).catch(function(e){say(e.message);soon()});
+}
+$('play').addEventListener('click',function(){
+  var playing=state&&state.is_playing;
+  act(function(){return api('PUT','/me/player/'+(playing?'pause':'play'))},function(){
+    if(state){state.progress_ms+=state.is_playing?Date.now()-stateAt:0;stateAt=Date.now();state.is_playing=!playing}setPlayIcon(!playing)});
+});
+$('next').addEventListener('click',function(){act(function(){return api('POST','/me/player/next')})});
+$('prev').addEventListener('click',function(){act(function(){return api('POST','/me/player/previous')})});
+function seekBy(sec){
+  if(!state||!state.item)return;
+  var p=state.progress_ms+(state.is_playing?Date.now()-stateAt:0);
+  var to=Math.max(0,Math.min(state.item.duration_ms-1000,p+sec*1000));
+  state.progress_ms=to;stateAt=Date.now();progress();
+  act(function(){return api('PUT','/me/player/seek?position_ms='+Math.round(to))});
+}
+$('back').addEventListener('click',function(){seekBy(-15)});
+$('fwd').addEventListener('click',function(){seekBy(30)});
+$('watch').addEventListener('click',function(){
+  if(!state||!state.item)return;
+  if(state.is_playing)api('PUT','/me/player/pause').catch(function(){});
+  location.href='spotify:episode:'+state.item.id;
+});
+$('login').addEventListener('click',login);
+
+/* ---------------- Drive times ---------------- */
+var here=null,lastRoute={home:0,work:0},lastFrom={home:null,work:null},routeBusy={};
+function dist(a,b){var R=6371000,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;
+  var x=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)*Math.sin(dn/2);return 2*R*Math.asin(Math.sqrt(x))}
+function showPlace(p,mins,unit,meta,isHere){
+  $(p+'Min').textContent=mins;$(p+'Unit').textContent=unit;$(p+'Meta').textContent=meta;
+  document.querySelector('[data-p="'+p+'"]').classList.toggle('here',!!isHere);
+}
+function route(p,force){
+  var dest=store.json(p);
+  if(!dest){showPlace(p,'–','','Tap to set',false);return}
+  if(!here){showPlace(p,'–','','Waiting for location…',false);return}
+  var straight=dist(here,dest);
+  if(straight<150){showPlace(p,'0','min',"You're here",true);return}
+  var moved=lastFrom[p]?dist(here,lastFrom[p]):1e9;
+  var age=Date.now()-lastRoute[p];
+  if(!force&&routeBusy[p])return;
+  if(!force&&age<60000)return;
+  if(!force&&age<120000&&moved<250)return;
+  routeBusy[p]=true;lastRoute[p]=Date.now();lastFrom[p]={lat:here.lat,lon:here.lon};
+  var mbx=store.get('mbx');
+  var pts=here.lon+','+here.lat+';'+dest.lon+','+dest.lat;
+  var url=mbx?'https://api.mapbox.com/directions/v5/mapbox/driving-traffic/'+pts+'?overview=false&access_token='+encodeURIComponent(mbx)
+             :'https://router.project-osrm.org/route/v1/driving/'+pts+'?overview=false';
+  fetch(url).then(function(r){return r.json()}).then(function(j){
+    var rt=j&&j.routes&&j.routes[0];if(!rt)throw new Error(j&&(j.message||j.code)||'no route');
+    var m=Math.max(1,Math.round(rt.duration/60));
+    var mi=rt.distance/1609.34;
+    var t=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    var hrs=m>=60?Math.floor(m/60)+' h '+(m%60):m;
+    showPlace(p,String(hrs),'min',(mi<10?mi.toFixed(1):Math.round(mi))+' mi · '+(mbx?'live traffic':'normal traffic')+' · '+t,false);
+  }).catch(function(e){
+    showPlace(p,$(p+'Min').textContent,$(p+'Unit').textContent,'Couldn’t update: '+e.message,false);
+  }).then(function(){routeBusy[p]=false});
+}
+function routes(force){route('home',force);route('work',force)}
+function startGPS(){
+  if(!('geolocation' in navigator)){showPlace('home','–','','No location here',false);showPlace('work','–','','No location here',false);return}
+  navigator.geolocation.watchPosition(function(pos){
+    here={lat:pos.coords.latitude,lon:pos.coords.longitude};routes(false);
+  },function(e){
+    var t=e.code===1?'Location is off for this page':'Can’t get location';
+    ['home','work'].forEach(function(p){if(store.json(p))showPlace(p,'–','',t,false)});
+  },{enableHighAccuracy:true,maximumAge:15000,timeout:30000});
+}
+setInterval(function(){routes(false)},30000);
+document.querySelectorAll('.place').forEach(function(b){b.addEventListener('click',function(){
+  if(!store.json(b.dataset.p)){openSetup();return}
+  lastRoute[b.dataset.p]=0;route(b.dataset.p,true);say('Updating '+b.dataset.p);
+})});
+
+/* ---------------- Settings ---------------- */
+function openSetup(){$('cid').value=store.get('cid')||'';$('mbx').value=store.get('mbx')||'';
+  ['home','work'].forEach(function(p){var d=store.json(p);$(p+'Msg').textContent=d?('Saved'+(d.label?': '+d.label:'')):''});
+  $('cidMsg').textContent=store.json('tok')?'Connected':'';$('setup').classList.add('on')}
+$('gear').addEventListener('click',openSetup);
+$('done').addEventListener('click',function(){$('setup').classList.remove('on');routes(true)});
+$('saveCid').addEventListener('click',function(){var v=$('cid').value.trim();if(!v){$('cidMsg').textContent='Paste the Client ID first';return}store.set('cid',v);login()});
+$('logout').addEventListener('click',function(){store.set('tok',null);state=null;setConnected(false);$('cidMsg').textContent='Disconnected'});
+$('saveMbx').addEventListener('click',function(){var v=$('mbx').value.trim();store.set('mbx',v||null);$('mbxMsg').textContent=v?'Saved, using live traffic':'Cleared, using normal traffic';lastRoute={home:0,work:0}});
+document.querySelectorAll('[data-here]').forEach(function(b){b.addEventListener('click',function(){
+  var p=b.dataset.here;$(p+'Msg').textContent='Getting location…';
+  navigator.geolocation.getCurrentPosition(function(pos){
+    store.set(p,JSON.stringify({lat:pos.coords.latitude,lon:pos.coords.longitude,label:'set from location'}));
+    $(p+'Msg').textContent='Saved: set from location';lastRoute[p]=0;
+  },function(e){$(p+'Msg').textContent=e.code===1?'Location permission was denied':'Couldn’t get location'},{enableHighAccuracy:true,timeout:20000});
+})});
+document.querySelectorAll('[data-find]').forEach(function(b){b.addEventListener('click',function(){
+  var p=b.dataset.find,q=$(p+'Addr').value.trim();if(!q)return;
+  $(p+'Msg').textContent='Searching…';
+  fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(j){
+    if(!j||!j[0]){$(p+'Msg').textContent='No match. Try adding the city and state.';return}
+    var label=j[0].display_name.split(',').slice(0,3).join(',');
+    store.set(p,JSON.stringify({lat:+j[0].lat,lon:+j[0].lon,label:label}));
+    $(p+'Msg').textContent='Saved: '+label;lastRoute[p]=0;
+  }).catch(function(){$(p+'Msg').textContent='Search failed, check the connection'});
+})});
+
+/* go */
+handleRedirect().then(function(){setConnected(!!store.json('tok'));poll()});
+startGPS();routes(true);
+})();
+</script>
+</body>
+</html>
